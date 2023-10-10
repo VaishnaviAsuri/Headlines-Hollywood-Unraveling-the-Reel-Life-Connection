@@ -1,0 +1,291 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+# Specify the path to your CSV file
+file_path <- "C:/Users/asuri/OneDrive/Desktop/spotify_api/sampled_df.csv"
+
+# Read the CSV file into a data frame
+data <- read.csv(file_path)
+
+head(data)
+
+
+```
+
+
+
+```{r}
+
+#Title, Director, Actors, Genre, Release_Date, date, words_movies, headline, category, authors, words_news
+
+# Create a new dataset with selected columns
+selected_data <- data[, c("Title", "Director", "Actors", "Genre", "words_movies", "headline", "category", "words_news")]
+
+# View the first few rows of the selected dataset
+head(selected_data)
+
+```
+
+```{r}
+selected_data
+```
+
+```{r}
+# Load required libraries
+library(dplyr)
+library(tidyr)
+
+# Specify the columns containing text data
+text_columns <- c("Title", "Director", "Actors", "Genre", "words_movies", "headline", "category", "words_news")
+
+# Combine all text columns into a single column for each row
+selected_data1 <- selected_data %>%
+  unite(text_combined, all_of(text_columns), sep = " ", remove = FALSE)
+```
+
+```{r}
+selected_data1<- selected_data1 %>%
+  select(text_combined)
+```
+
+```{r}
+selected_data1
+```
+
+
+```{r}
+# Tokenize the combined text into individual words
+#selected_data1 <- selected_data1 %>%
+ # separate_rows(text_combined, sep = " ")
+```
+
+```{r}
+selected_data1
+```
+
+
+```{r}
+# Load the required library
+library(tidyr)
+
+# Assuming "text_combined" is the column with space-separated words
+transactional_data <- selected_data1 %>%
+  separate(text_combined, into = paste0("Word", 1:60), sep = " ", remove = FALSE, fill = "right")
+
+# Remove the original combined text column
+transactional_data <- transactional_data %>%
+  select(-text_combined)
+
+# View the first few rows of the transactional dataframe
+head(transactional_data)
+```
+
+```{r}
+# Convert the transaction object to a data frame
+transactional_data <- as(transactional_data, "data.frame")
+
+# Convert the entire data frame to lowercase
+transactional_data[] <- lapply(transactional_data, tolower)
+
+# View the first few rows of the modified data frame
+head(transactional_data)
+```
+
+```{r}
+# Remove commas (,) from all columns in the dataset
+transactional_data <- transactional_data %>%
+  mutate(across(everything(), ~gsub(",", "", .)))
+
+# View the first few rows of the modified dataset
+head(transactional_data)
+```
+```{r}
+# Assuming your dataframe is named 'transactional_data'
+
+# Remove special characters and keep only words
+transactional_data <- transactional_data %>%
+  mutate(across(everything(), ~gsub("[^a-zA-Z ]", "", .)))
+
+# View the first few rows of the cleaned dataset
+head(transactional_data)
+
+```
+
+
+```{r}
+# Set the column names of modified_data to NULL
+colnames(transactional_data) <- NULL
+
+# View the modified_data without column names
+head(transactional_data)
+
+```
+
+
+```{r}
+# Assuming your dataframe is named 'transactional_data'
+
+# Find the maximum number of N/A values in a row
+max_na_count <- max(rowSums(is.na(transactional_data)))
+
+# Print the maximum number of N/A values
+cat("Maximum number of N/A values in a row:", max_na_count, "\n")
+
+
+```
+
+```{r}
+# Assuming your dataframe is named 'transactional_data'
+
+# Count the number of "N/A" values in each row
+na_counts <- rowSums(is.na(transactional_data))
+
+# Count the number of rows with more than 30 "N/A" values
+rows_with_more_than_30_na <- sum(na_counts > 18)
+
+# Print the count
+cat("Number of rows with more than 30 N/A values:", rows_with_more_than_30_na, "\n")
+
+```
+```{r}
+# Assuming your dataframe is named 'transactional_data'
+
+# Count the number of "N/A" values in each row
+na_counts <- rowSums(is.na(transactional_data))
+
+# Define the threshold (e.g., 18)
+threshold <- 18
+
+# Filter the dataframe to keep only rows with 18 or fewer "N/A" values
+filtered_data <- transactional_data[na_counts <= threshold, ]
+
+# Now 'filtered_data' contains only the rows with 18 or fewer "N/A" values
+
+```
+
+
+```{r}
+filtered_data
+
+```
+
+
+```{r}
+# Assuming your dataframe is named 'transactional_data'
+
+# Convert each row into a vector and remove N/A values
+#cleaned_data <- lapply(as.data.frame(transactional_data), function(row) {
+ # row <- as.vector(row)
+ # row <- row[!is.na(row)]
+  #return(row)
+#})
+
+# View the first few rows of the cleaned data
+#cleaned_data[1:6]  # Adjust the range as needed to view more rows
+
+
+```
+
+
+
+```{r}
+filepath<-"C:/Users/asuri/OneDrive/Desktop/spotify_api/arm_data.csv"
+write.csv(filtered_data, file = filepath, row.names = FALSE)
+
+```
+
+----------------------------------------------------------------------------------
+```{r}
+# Find all unique items in your data
+all_items <- unique(unlist(transactional_data1))
+
+# Create a data frame where each row is a transaction and each column represents an item
+transactional_data1 <- data.frame(
+  sapply(all_items, function(item) sapply(transactional_data1, function(trans) as.integer(item %in% trans)))
+)
+
+# Load the 'arules' package
+library(arules)
+
+# Convert the data frame to transactions
+transactions <- as(transactional_data1, "transactions")
+
+# View the transactions
+inspect(transactions)
+
+```
+
+
+```{r}
+# Load the required library
+library(arules)
+
+# Define the Apriori parameters
+min_support <- 0.000001  # Adjust as needed
+min_confidence <- 0.000001  # Adjust as needed
+
+# Run Apriori algorithm
+rules <- apriori(
+  transactions_df,
+  parameter = list(support = min_support, confidence = min_confidence, minlen = 2, maxlen=6),
+  control = list(verbose = FALSE)
+)
+
+# Sort rules by confidence, support, and lift in decreasing order
+rules_conf <- sort(rules, by = "confidence", decreasing = TRUE)
+rules_sup <- sort(rules, by = "support", decreasing = TRUE)
+rules_lift <- sort(rules, by = "lift", decreasing = TRUE)
+
+# Get the top 15 rules for confidence, support, and lift
+top_15_confidence <- head(rules_conf, 15)
+top_15_support <- head(rules_sup, 15)
+top_15_lift <- head(rules_lift, 15)
+
+# View the top 15 rules for confidence
+inspect(top_15_confidence)
+
+```
+
+
+
+```{r}
+# View the top 15 rules for support
+inspect(top_15_support)
+```
+
+
+```{r}
+# View the top 15 rules for lift
+inspect(top_15_lift)
+```
+
+```{r}
+# Install and load the arulesViz package
+#install.packages("arulesViz")
+library(arulesViz)
+
+# Visualize the association rules as a network plot
+plot(top_15_support, method = "graph", control = list(type = "items"))
+plot(top_15_confidence, method = "graph", control = list(type = "items"))
+
+```
+
+```{r}
+unique_items <- unique(transactions_df)
+```
+
+
+
+```{r}
+# Assuming your association rules are stored in a variable named 'all_rules'
+# Filter rules with LHS containing specified items
+filtered_rules <- subset(rules, lhs %in% c("scooby-doo!"))# "horror", "comedy", "romance", "adventure"))
+
+inspect(filtered_rules)
+
+```
+

@@ -1,0 +1,93 @@
+---
+title: "clustering"
+author: "Vaishnavi Asuri"
+date: "2023-10-09"
+output: html_document
+---
+
+```{r}
+# Replace 'your_file_path.csv' with the actual file path of your CSV file
+file_path <- "C:/Users/asuri/OneDrive/Desktop/spotify_api/sampled_df.csv"
+
+# Read the CSV file into a data frame
+data<- read.csv(file_path)
+
+# Now, 'your_data_frame' contains the data from the CSV file
+
+```
+
+```{r}
+# Select only the specified columns and create a subset
+data_sub <- data[c("Year", "Runtime", "Rating")]
+
+# Now, 'data_sub' contains only the selected columns
+
+data_sub
+```
+
+
+```{r}
+# Function to check for non-numeric values in a column
+has_non_numeric <- function(column) {
+  any(is.na(as.numeric(column)))
+}
+
+# Check each column for non-numeric data
+for (column_name in colnames(data_sub)) {
+  if (has_non_numeric(data_sub[[column_name]])) {
+    cat(paste("'", column_name, "' contains non-numeric data.\n"))
+  }
+}
+
+```
+```{r}
+# Remove non-numeric characters and retain only numbers in the 'Runtime' column
+data_sub$Runtime <- gsub("[^0-9]", "", data_sub$Runtime)
+
+# Display the modified data frame
+print(data_sub)
+
+```
+
+
+```{r}
+# Perform hierarchical clustering on data_sub
+dist_matrix <- dist(data_sub)
+hclust_result <- hclust(dist_matrix)
+
+# Plot the dendrogram
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram", xlab = "Year", sub = NULL)
+
+```
+
+```{r}
+# Set a seed for reproducibility
+set.seed(123)
+
+# Sample 200 rows from data_sub
+data_sub1 <- data_sub[sample(nrow(data_sub), 90), ]
+
+# Perform hierarchical clustering on data_sub1
+dist_matrix <- dist(data_sub1)
+hclust_result <- hclust(dist_matrix)
+
+# Plot the dendrogram for data_sub1
+plot(hclust_result, main = "Hierarchical Clustering Dendrogram (Sampled 200 Rows)", xlab = "Movies", sub = NULL)
+
+```
+
+
+```{r}
+# Compute cosine distance matrix
+data_matrix <- data_sub[, c("Year", "Rating", "Runtime")]
+cosine_dist <- proxy::dist(as.matrix(data_matrix), method = "cosine")
+
+
+# Perform hierarchical clustering
+hclust_result <- hclust(cosine_dist, method = "complete")  # You can use "single", "complete", "average", etc.
+
+# Plot the hierarchical clustering dendrogram
+plot(hclust_result, hang = -1, cex = 0.4, main = "Hierarchical Clustering Dendrogram (Cosine Distance)")
+
+```
+
